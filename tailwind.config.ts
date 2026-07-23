@@ -1,0 +1,80 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        // Paleta "librería de barrio": papel envejecido, madera, terracota y mostaza.
+        paper: {
+          50: "#FDF8F0",
+          100: "#FAF1E1",
+          200: "#F3E4C8",
+          300: "#EAD2A8",
+          400: "#DEBB80",
+          500: "#CFA05B",
+          600: "#B98545",
+          700: "#976A38",
+          800: "#7A5530",
+          900: "#63452A",
+        },
+        wood: {
+          50: "#F5EFE9",
+          100: "#E8DBCC",
+          200: "#D3BC9F",
+          300: "#B99771",
+          400: "#9C7752",
+          500: "#7D5B3E",
+          600: "#634633",
+          700: "#4E3728",
+          800: "#3B291F",
+          900: "#2B1D16",
+        },
+        terracotta: {
+          50: "#FBEEE8",
+          100: "#F5D6C6",
+          200: "#EBB08F",
+          300: "#DD8759",
+          400: "#CC6836",
+          500: "#B9532A",
+          600: "#994322",
+          700: "#7A361F",
+          800: "#5E2B1B",
+          900: "#452016",
+        },
+        gold: {
+          50: "#FDF6E3",
+          100: "#FAEAB8",
+          200: "#F3D67A",
+          300: "#E9BD46",
+          400: "#D9A32B",
+          500: "#BD8620",
+          600: "#98691A",
+          700: "#794F16",
+          800: "#5C3B12",
+          900: "#432B0E",
+        },
+        ink: {
+          50: "#F4F2EF",
+          100: "#E3DED7",
+          200: "#C7BEB0",
+          300: "#A69884",
+          400: "#83725D",
+          500: "#5C4E3F",
+          600: "#493D31",
+          700: "#3A2F24",
+          800: "#2B221A",
+          900: "#231C15",
+        },
+      },
+    },
+  },
+  plugins: [],
+};
+export default config;
