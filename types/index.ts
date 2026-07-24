@@ -7,3 +7,11 @@ export type Producto = {
   disponible: boolean;
   destacado: boolean;
 };
+
+export type Config = {
+  direccion: string;
+  horarioLunVie: string;
+  horarioSab: string;
+  whatsapp: string;
+  instagram: string;
+};

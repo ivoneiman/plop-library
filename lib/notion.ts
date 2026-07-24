@@ -4,11 +4,12 @@ import type {
   PageObjectResponse,
   QueryDataSourceResponse,
 } from "@notionhq/client/build/src/api-endpoints";
-import type { Producto } from "@/types";
+import type { Config, Producto } from "@/types";
 
 export const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
 const databaseId = process.env.NOTION_DATABASE_ID as string;
+const configDatabaseId = process.env.NOTION_CONFIG_DATABASE_ID as string;
 
 function esPaginaCompleta(
   page: QueryDataSourceResponse["results"][number],
@@ -25,7 +26,7 @@ function mapearProducto(page: PageObjectResponse): Producto {
       : "";
 
   const categoria: Producto["categoria"] =
-    props.Categoria?.type === "select" && props.Categoria.select?.name === "Regalería"
+    props.Categoria?.type === "select" && props.Categoria.select?.name === "Regaleria"
       ? "Regalería"
       : "Libros";
 
@@ -54,7 +55,7 @@ function mapearProducto(page: PageObjectResponse): Producto {
   };
 }
 
-async function getDataSourceId(): Promise<string> {
+async function getDataSourceId(databaseId: string): Promise<string> {
   const database = (await notion.databases.retrieve({
     database_id: databaseId,
   })) as DatabaseObjectResponse;
@@ -63,7 +64,7 @@ async function getDataSourceId(): Promise<string> {
 }
 
 export async function getCatalogo(): Promise<Producto[]> {
-  const dataSourceId = await getDataSourceId();
+  const dataSourceId = await getDataSourceId(databaseId);
 
   const response = await notion.dataSources.query({
     data_source_id: dataSourceId,
@@ -74,4 +75,37 @@ export async function getCatalogo(): Promise<Producto[]> {
   });
 
   return response.results.filter(esPaginaCompleta).map(mapearProducto);
+}
+
+function mapearConfigItem(page: PageObjectResponse): { campo: string; valor: string } {
+  const props = page.properties;
+
+  const campo =
+    props.Campo?.type === "title" ? props.Campo.title.map((texto) => texto.plain_text).join("") : "";
+
+  const valor =
+    props.Valor?.type === "rich_text"
+      ? props.Valor.rich_text.map((texto) => texto.plain_text).join("")
+      : "";
+
+  return { campo, valor };
+}
+
+export async function getConfig(): Promise<Config> {
+  const dataSourceId = await getDataSourceId(configDatabaseId);
+
+  const response = await notion.dataSources.query({
+    data_source_id: dataSourceId,
+  });
+
+  const items = response.results.filter(esPaginaCompleta).map(mapearConfigItem);
+  const valores = Object.fromEntries(items.map(({ campo, valor }) => [campo, valor]));
+
+  return {
+    direccion: valores["Dirección"] ?? "",
+    horarioLunVie: valores["Horario Lun-Vie"] ?? "",
+    horarioSab: valores["Horario Sáb"] ?? "",
+    whatsapp: valores["WhatsApp"] ?? "",
+    instagram: valores["Instagram"] ?? "",
+  };
 }
