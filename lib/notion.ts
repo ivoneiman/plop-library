@@ -30,7 +30,11 @@ function mapearProducto(page: PageObjectResponse): Producto {
       ? "Regalería"
       : "Libros";
 
+  const subcategoria =
+    props.Subcategoria?.type === "select" ? (props.Subcategoria.select?.name ?? null) : null;
+
   const precio = props.Precio?.type === "number" ? (props.Precio.number ?? 0) : 0;
+  const stock = props.Stock?.type === "number" ? (props.Stock.number ?? 0) : 0;
 
   const primeraFoto = props.Foto?.type === "files" ? props.Foto.files[0] : undefined;
   const fotoUrl = primeraFoto
@@ -41,14 +45,19 @@ function mapearProducto(page: PageObjectResponse): Producto {
         : null
     : null;
 
-  const disponible = props.Disponible?.type === "checkbox" ? props.Disponible.checkbox : false;
+  const disponible =
+    props.Disponible?.type === "formula" && props.Disponible.formula.type === "boolean"
+      ? (props.Disponible.formula.boolean ?? false)
+      : false;
   const destacado = props.Destacado?.type === "checkbox" ? props.Destacado.checkbox : false;
 
   return {
     id: page.id,
     nombre,
     categoria,
+    subcategoria,
     precio,
+    stock,
     fotoUrl,
     disponible,
     destacado,
@@ -70,7 +79,7 @@ export async function getCatalogo(): Promise<Producto[]> {
     data_source_id: dataSourceId,
     filter: {
       property: "Disponible",
-      checkbox: { equals: true },
+      formula: { checkbox: { equals: true } },
     },
   });
 

@@ -3,18 +3,21 @@
 @tailwind utilities;
 
 :root {
-  --background: #fdf8f0;
+  --background: #fffefb;
   --foreground: #2b221a;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .z-1-shadow {
+    box-shadow: 0 8px 24px rgba(147, 105, 59, 0.1);
   }
 }

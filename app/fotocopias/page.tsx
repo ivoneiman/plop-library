@@ -1,7 +1,24 @@
+import type { Metadata } from "next";
 import { getConfig } from "@/lib/notion";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { FotocopiasForm } from "@/components/FotocopiasForm";
+import { SITE_URL } from "@/lib/site";
 
 export const revalidate = 300;
+
+const descripcion =
+  "Fotocopiadora en Manuel B. Gonnet, La Plata: fotocopias blanco y negro, color, anillado, impresión y escaneo de documentos.";
+
+export const metadata: Metadata = {
+  title: "Fotocopias",
+  description: descripcion,
+  alternates: { canonical: "/fotocopias" },
+  openGraph: {
+    title: "Fotocopias | Plop!",
+    description: descripcion,
+    url: `${SITE_URL}/fotocopias`,
+    type: "website",
+  },
+};
 
 const servicios = [
   "Fotocopias blanco y negro",
@@ -13,33 +30,31 @@ const servicios = [
 
 export default async function FotocopiasPage() {
   const config = await getConfig();
-  const linkWhatsapp = buildWhatsAppUrl(config.whatsapp, "Hola! Quiero consultar por fotocopias");
 
   return (
-    <main className="min-h-screen bg-paper-50 px-4 py-8 text-ink-800 sm:px-6">
+    <main className="min-h-screen bg-paper-50 px-4 py-10 sm:px-6">
       <div className="mx-auto max-w-2xl">
-        <h1 className="text-3xl font-bold text-wood-800">Fotocopias</h1>
-        <p className="mt-1 text-ink-500">Traé tu archivo o documento y lo resolvemos en el local.</p>
+        <header className="mb-8 text-center">
+          <h1 className="font-display text-3xl font-black text-mustard-500 sm:text-4xl">
+            Pedidos de Impresión
+          </h1>
+          <p className="mt-2 text-lg font-medium text-kraft-600">
+            Subí tus archivos y configuralos. Te avisamos cuando estén listos para retirar.
+          </p>
+        </header>
 
-        <ul className="mt-6 space-y-2">
+        <ul className="mb-6 flex flex-wrap justify-center gap-2">
           {servicios.map((servicio) => (
             <li
               key={servicio}
-              className="rounded-lg border border-wood-100 bg-white px-4 py-3 text-sm text-ink-700"
+              className="rounded-full border border-kraft-100 bg-white px-4 py-1.5 text-xs font-bold text-kraft-700"
             >
               {servicio}
             </li>
           ))}
         </ul>
 
-        <a
-          href={linkWhatsapp}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-8 inline-flex items-center justify-center rounded-lg bg-gold-400 px-5 py-3 font-medium text-ink-900 transition hover:bg-gold-500"
-        >
-          Consultar por WhatsApp
-        </a>
+        <FotocopiasForm whatsapp={config.whatsapp} />
       </div>
     </main>
   );
