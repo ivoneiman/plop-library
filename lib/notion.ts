@@ -1,0 +1,77 @@
+import { Client } from "@notionhq/client";
+import type {
+  DatabaseObjectResponse,
+  PageObjectResponse,
+  QueryDataSourceResponse,
+} from "@notionhq/client/build/src/api-endpoints";
+import type { Producto } from "@/types";
+
+export const notion = new Client({ auth: process.env.NOTION_API_KEY });
+
+const databaseId = process.env.NOTION_DATABASE_ID as string;
+
+function esPaginaCompleta(
+  page: QueryDataSourceResponse["results"][number],
+): page is PageObjectResponse {
+  return page.object === "page" && "properties" in page;
+}
+
+function mapearProducto(page: PageObjectResponse): Producto {
+  const props = page.properties;
+
+  const nombre =
+    props.Nombre?.type === "title"
+      ? props.Nombre.title.map((texto) => texto.plain_text).join("")
+      : "";
+
+  const categoria: Producto["categoria"] =
+    props.Categoria?.type === "select" && props.Categoria.select?.name === "Regalería"
+      ? "Regalería"
+      : "Libros";
+
+  const precio = props.Precio?.type === "number" ? (props.Precio.number ?? 0) : 0;
+
+  const primeraFoto = props.Foto?.type === "files" ? props.Foto.files[0] : undefined;
+  const fotoUrl = primeraFoto
+    ? primeraFoto.type === "external"
+      ? primeraFoto.external.url
+      : primeraFoto.type === "file"
+        ? primeraFoto.file.url
+        : null
+    : null;
+
+  const disponible = props.Disponible?.type === "checkbox" ? props.Disponible.checkbox : false;
+  const destacado = props.Destacado?.type === "checkbox" ? props.Destacado.checkbox : false;
+
+  return {
+    id: page.id,
+    nombre,
+    categoria,
+    precio,
+    fotoUrl,
+    disponible,
+    destacado,
+  };
+}
+
+async function getDataSourceId(): Promise<string> {
+  const database = (await notion.databases.retrieve({
+    database_id: databaseId,
+  })) as DatabaseObjectResponse;
+
+  return database.data_sources[0].id;
+}
+
+export async function getCatalogo(): Promise<Producto[]> {
+  const dataSourceId = await getDataSourceId();
+
+  const response = await notion.dataSources.query({
+    data_source_id: dataSourceId,
+    filter: {
+      property: "Disponible",
+      checkbox: { equals: true },
+    },
+  });
+
+  return response.results.filter(esPaginaCompleta).map(mapearProducto);
+}
