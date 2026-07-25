@@ -5,6 +5,21 @@ import type {
   QueryDataSourceResponse,
 } from "@notionhq/client/build/src/api-endpoints";
 import type { Config, PreciosFotocopias, Producto } from "@/types";
+import { normalizar } from "./normalizar";
+
+/**
+ * Busca un campo por nombre en una lista de pares {campo, valor} leídos de
+ * Notion, comparando de forma normalizada (sin tildes/mayúsculas) para que
+ * variaciones de tipeo en Notion (ej. "Direccion" vs "Dirección") no rompan
+ * la lectura.
+ */
+export function buscarCampoConfig(
+  campos: { campo: string; valor: string }[],
+  nombreBuscado: string,
+): string | undefined {
+  const buscado = normalizar(nombreBuscado);
+  return campos.find(({ campo }) => normalizar(campo) === buscado)?.valor;
+}
 
 export const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
@@ -25,10 +40,12 @@ function mapearProducto(page: PageObjectResponse): Producto {
       ? props.Nombre.title.map((texto) => texto.plain_text).join("")
       : "";
 
-  const categoria: Producto["categoria"] =
-    props.Categoria?.type === "select" && props.Categoria.select?.name === "Regaleria"
-      ? "Regalería"
-      : "Libros";
+  const categoriaNotion =
+    props.Categoria?.type === "select" ? (props.Categoria.select?.name ?? "") : "";
+  const categoria =
+    (buscarCampoConfig([{ campo: "Regaleria", valor: "Regalería" }], categoriaNotion) as
+      | Producto["categoria"]
+      | undefined) ?? "Libros";
 
   const subcategoria =
     props.Subcategoria?.type === "select" ? (props.Subcategoria.select?.name ?? null) : null;
@@ -124,14 +141,13 @@ export async function getConfig(): Promise<Config> {
   });
 
   const items = response.results.filter(esPaginaCompleta).map(mapearConfigItem);
-  const valores = Object.fromEntries(items.map(({ campo, valor }) => [campo, valor]));
 
   return {
-    direccion: valores["Dirección"] ?? "",
-    horarioLunVie: valores["Horario Lun-Vie"] ?? "",
-    horarioSab: valores["Horario Sáb"] ?? "",
-    whatsapp: valores["WhatsApp"] ?? "",
-    instagram: valores["Instagram"] ?? "",
+    direccion: buscarCampoConfig(items, "Dirección") ?? "",
+    horarioLunVie: buscarCampoConfig(items, "Horario Lun-Vie") ?? "",
+    horarioSab: buscarCampoConfig(items, "Horario Sáb") ?? "",
+    whatsapp: buscarCampoConfig(items, "WhatsApp") ?? "",
+    instagram: buscarCampoConfig(items, "Instagram") ?? "",
   };
 }
 
@@ -143,12 +159,11 @@ export async function getPreciosFotocopias(): Promise<PreciosFotocopias> {
   });
 
   const items = response.results.filter(esPaginaCompleta).map(mapearConfigItem);
-  const valores = Object.fromEntries(items.map(({ campo, valor }) => [campo, valor]));
 
   return {
-    precioCopiaByN: Number(valores["Precio Copia ByN"]) || 0,
-    precioCopiaColor: Number(valores["Precio Copia Color"]) || 0,
-    descuentoDobleFazPorcentaje: Number(valores["Descuento Doble Faz %"]) || 0,
-    precioAnillado: Number(valores["Precio Anillado"]) || 0,
+    precioCopiaByN: Number(buscarCampoConfig(items, "Precio Copia ByN")) || 0,
+    precioCopiaColor: Number(buscarCampoConfig(items, "Precio Copia Color")) || 0,
+    descuentoDobleFazPorcentaje: Number(buscarCampoConfig(items, "Descuento Doble Faz %")) || 0,
+    precioAnillado: Number(buscarCampoConfig(items, "Precio Anillado")) || 0,
   };
 }
