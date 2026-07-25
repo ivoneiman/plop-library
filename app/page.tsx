@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { getCatalogo, getConfig } from "@/lib/notion";
+import { getCatalogo, getConfig, getProductosPorNombre } from "@/lib/notion";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 
 export const revalidate = 300;
@@ -86,19 +86,26 @@ const acentoClases = {
   },
 };
 
-const destacados = [
+const destacadosCopy = [
   {
+    nombreNotion: "Día del niño",
+    titulo: "Combo Día del Niño",
+    descripcion:
+      "Armamos un combo especial para el Día del Niño con marcadores, stickers y un librito para pintar sin límites. Ideal para sorprender sin vueltas.",
+    tituloClase: "text-turquoise",
+  },
+  {
+    nombreNotion: "Marcadores Acrílicos Trabí",
     titulo: "Marcadores Acrílicos Trabí",
     descripcion:
       "Vení a probar los marcadores de acrílico Trabí. Funcionan en todo: plástico, vidrio, madera, lo que quieras. Y lo mejor… ¡más económicos que los Posca!",
-    imagen: "/images/home/stitch-destacado-marcadores.png",
     tituloClase: "text-mustard-500",
   },
   {
+    nombreNotion: "Kit Pink Elephant",
     titulo: "Colab Pink Elephant",
     descripcion:
       "Colaboración con @pinkelephantdeco. En Plop! encontrás estos kits con los combos más lindos y originales. Ideal para sorprender, para darte un gusto o simplemente porque sí 💖",
-    imagen: "/images/home/stitch-destacado-pinkelephant.png",
     tituloClase: "text-accent-pink-500",
   },
 ];
@@ -137,11 +144,22 @@ const testimonioClases = {
 };
 
 export default async function Home() {
-  const [productos, config] = await Promise.all([getCatalogo(), getConfig()]);
+  const [productos, productosDestacados, config] = await Promise.all([
+    getCatalogo(),
+    getProductosPorNombre(destacadosCopy.map((item) => item.nombreNotion)),
+    getConfig(),
+  ]);
 
   const novedades = [...productos]
     .sort((a, b) => Number(b.destacado) - Number(a.destacado))
     .slice(0, 10);
+
+  const destacados = destacadosCopy
+    .map((item) => {
+      const producto = productosDestacados.find((p) => p.nombre === item.nombreNotion);
+      return producto?.fotoUrl ? { ...item, imagen: producto.fotoUrl } : null;
+    })
+    .filter((item): item is (typeof destacadosCopy)[number] & { imagen: string } => item !== null);
 
   const mapsHref = config.direccion
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config.direccion)}`
@@ -212,8 +230,8 @@ export default async function Home() {
           </div>
           <div className="z-1-shadow relative h-[400px] w-full overflow-hidden rounded-[2rem] border-4 border-mustard-500/30 md:w-1/2">
             <Image
-              src="/images/home/stitch-hero.jpg"
-              alt="Interior de una librería de barrio cálida, con estanterías de madera llenas de libros"
+              src="/images/home/plop-libreria-frente-vidriera-costado.webp"
+              alt="Vidriera de Plop!, librería de barrio"
               fill
               priority
               sizes="(max-width: 768px) 100vw, 50vw"
@@ -332,18 +350,18 @@ export default async function Home() {
         )}
 
         {/* Destacados: bloques promocionales */}
-        <section className="mb-12 grid grid-cols-1 gap-6 md:mb-16 md:grid-cols-2">
+        <section className="mb-12 grid grid-cols-1 gap-6 md:mb-16 md:grid-cols-3">
           {destacados.map((item) => (
             <div
               key={item.titulo}
               className="z-1-shadow flex flex-col overflow-hidden rounded-[2rem] border-2 border-kraft-100 bg-white"
             >
-              <div className="relative h-64 w-full md:h-80">
+              <div className="relative h-64 w-full md:h-72">
                 <Image
                   src={item.imagen}
                   alt={item.titulo}
                   fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  sizes="(max-width: 768px) 100vw, 33vw"
                   className="object-cover"
                 />
               </div>

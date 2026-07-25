@@ -86,6 +86,22 @@ export async function getCatalogo(): Promise<Producto[]> {
   return response.results.filter(esPaginaCompleta).map(mapearProducto);
 }
 
+export async function getProductosPorNombre(nombres: string[]): Promise<Producto[]> {
+  const dataSourceId = await getDataSourceId(databaseId);
+
+  const response = await notion.dataSources.query({
+    data_source_id: dataSourceId,
+    filter: {
+      or: nombres.map((nombre) => ({
+        property: "Nombre",
+        title: { equals: nombre },
+      })),
+    },
+  });
+
+  return response.results.filter(esPaginaCompleta).map(mapearProducto);
+}
+
 function mapearConfigItem(page: PageObjectResponse): { campo: string; valor: string } {
   const props = page.properties;
 
