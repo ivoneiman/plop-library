@@ -12,6 +12,12 @@ const config: Config = {
         display: ["var(--font-display)", "sans-serif"],
         sans: ["var(--font-sans)", "sans-serif"],
       },
+      boxShadow: {
+        soft: "0 8px 24px rgba(147, 105, 59, 0.1)",
+        sticker: "4px 4px 0 0 rgba(147, 105, 59, 1)",
+        "sticker-hover": "6px 6px 0 0 rgba(147, 105, 59, 1)",
+        "sticker-lg": "8px 8px 0 0 rgba(147, 105, 59, 1)",
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",

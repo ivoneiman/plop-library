@@ -17,10 +17,6 @@ body {
     text-wrap: balance;
   }
 
-  .z-1-shadow {
-    box-shadow: 0 8px 24px rgba(147, 105, 59, 0.1);
-  }
-
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
