@@ -43,34 +43,7 @@ lib/
 types/                 Tipos compartidos (Producto, Config, PedidoFotocopia)
 ```
 
-## Desarrollo local
+### Patrones utilizados
+El acceso a Notion está aislado detrás de un Repository (lib/notion.ts), que además usa un Mapper para traducir la forma cruda de la API a tipos de dominio propios (types/index.ts) — así ningún componente conoce la estructura interna de Notion, y un cambio ahí (como renombrar una propiedad) queda contenido en un solo lugar en vez de propagarse por toda la app. 
 
-```bash
-npm install
-npm run dev
-```
-
-Abrí [http://localhost:3000](http://localhost:3000).
-
-### Variables de entorno
-
-Copiá `.env.local.example` a `.env.local` y completá:
-
-| Variable | Uso |
-| --- | --- |
-| `NOTION_API_KEY` | Token de integración de Notion |
-| `NOTION_DATABASE_ID` | Base de datos del catálogo de productos |
-| `NOTION_CONFIG_DATABASE_ID` | Base de datos de configuración del local (dirección, horarios, contacto) |
-| `NEXT_PUBLIC_SITE_URL` | URL pública del sitio (para SEO/canonical) |
-| `BLOB_READ_WRITE_TOKEN` | Storage temporal de los archivos de fotocopias |
-| `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_TO_EMAIL` | Envío del mail de aviso de pedido al local |
-
-## Scripts
-
-```bash
-npm run dev      # servidor de desarrollo
-npm run build    # build de producción
-npm run start    # levanta el build de producción
-npm run lint     # ESLint
-npm run format   # Prettier
-```
+La lógica de negocio compartida entre vistas (filtro de catálogo, cálculo de cotización de fotocopias) vive en funciones y hooks propios en vez de duplicarse por componente, siguiendo la misma lógica de un Service Object. Las páginas usan Server Components de Next.js con revalidación periódica (ISR), un esquema de cacheo equivalente a Cache-Aside: el contenido se sirve cacheado y solo se recalcula cuando vence el tiempo configurado, en vez de pegarle a Notion en cada visita.
