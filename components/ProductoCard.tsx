@@ -20,7 +20,7 @@ export function ProductoCard({ producto, whatsapp, variant = "grid" }: Props) {
   const ultimasUnidades = producto.stock > 0 && producto.stock <= 3;
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-xl border-2 border-kraft-100 bg-white p-3 shadow-sm transition-shadow duration-300 hover:shadow-md">
+    <article className="group relative flex flex-col overflow-hidden rounded-xl border-2 border-kraft-100 bg-white p-3 shadow-soft transition-all duration-300 md:border-kraft-500 md:shadow-sticker md:hover:-translate-y-1 md:hover:shadow-sticker-hover">
       {(producto.destacado || ultimasUnidades) && (
         <div className="absolute right-4 top-4 z-10 flex flex-col items-end gap-1">
           {producto.destacado && (

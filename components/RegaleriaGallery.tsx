@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { Producto } from "@/types";
 import { ProductoCard } from "@/components/ProductoCard";
-import { normalizar } from "@/lib/normalizar";
+import { useFiltroProductos } from "@/hooks/useFiltroProductos";
 
 type Props = {
   productos: Producto[];
@@ -11,37 +11,11 @@ type Props = {
 };
 
 export function RegaleriaGallery({ productos, whatsapp }: Props) {
-  const [busqueda, setBusqueda] = useState("");
-  const [subcategoriasElegidas, setSubcategoriasElegidas] = useState<string[]>([]);
+  const { busqueda, setBusqueda, subcategorias, subcategoriasElegidas, alternarSubcategoria, coincideProducto } =
+    useFiltroProductos(productos);
   const [sidebarAbierto, setSidebarAbierto] = useState(false);
 
-  const subcategorias = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          productos
-            .map((producto) => producto.subcategoria)
-            .filter((subcategoria): subcategoria is string => Boolean(subcategoria)),
-        ),
-      ).sort((a, b) => a.localeCompare(b)),
-    [productos],
-  );
-
-  const alternarSubcategoria = (subcategoria: string) => {
-    setSubcategoriasElegidas((actuales) =>
-      actuales.includes(subcategoria)
-        ? actuales.filter((valor) => valor !== subcategoria)
-        : [...actuales, subcategoria],
-    );
-  };
-
-  const filtrados = productos.filter((producto) => {
-    const coincideNombre = normalizar(producto.nombre).includes(normalizar(busqueda));
-    const coincideSubcategoria =
-      subcategoriasElegidas.length === 0 ||
-      (producto.subcategoria !== null && subcategoriasElegidas.includes(producto.subcategoria));
-    return coincideNombre && coincideSubcategoria;
-  });
+  const filtrados = productos.filter(coincideProducto);
 
   const listaSubcategorias = (
     <ul className="space-y-3">

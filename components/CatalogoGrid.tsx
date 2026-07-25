@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Producto } from "@/types";
 import { ProductoCard } from "@/components/ProductoCard";
-import { normalizar } from "@/lib/normalizar";
+import { useFiltroProductos } from "@/hooks/useFiltroProductos";
 
 type Props = {
   productos: Producto[];
@@ -11,9 +11,9 @@ type Props = {
 };
 
 export function CatalogoGrid({ productos, whatsapp }: Props) {
-  const [busqueda, setBusqueda] = useState("");
+  const { busqueda, setBusqueda, subcategorias, subcategoriasElegidas, alternarSubcategoria, coincideProducto } =
+    useFiltroProductos(productos);
   const [categoria, setCategoria] = useState("Todas");
-  const [subcategoriasElegidas, setSubcategoriasElegidas] = useState<string[]>([]);
   const [sidebarAbierto, setSidebarAbierto] = useState(false);
 
   const categorias = useMemo(
@@ -21,34 +21,10 @@ export function CatalogoGrid({ productos, whatsapp }: Props) {
     [productos],
   );
 
-  const subcategorias = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          productos
-            .map((producto) => producto.subcategoria)
-            .filter((subcategoria): subcategoria is string => Boolean(subcategoria)),
-        ),
-      ).sort((a, b) => a.localeCompare(b)),
-    [productos],
+  const filtrados = productos.filter(
+    (producto) =>
+      coincideProducto(producto) && (categoria === "Todas" || producto.categoria === categoria),
   );
-
-  const alternarSubcategoria = (subcategoria: string) => {
-    setSubcategoriasElegidas((actuales) =>
-      actuales.includes(subcategoria)
-        ? actuales.filter((valor) => valor !== subcategoria)
-        : [...actuales, subcategoria],
-    );
-  };
-
-  const filtrados = productos.filter((producto) => {
-    const coincideNombre = normalizar(producto.nombre).includes(normalizar(busqueda));
-    const coincideCategoria = categoria === "Todas" || producto.categoria === categoria;
-    const coincideSubcategoria =
-      subcategoriasElegidas.length === 0 ||
-      (producto.subcategoria !== null && subcategoriasElegidas.includes(producto.subcategoria));
-    return coincideNombre && coincideCategoria && coincideSubcategoria;
-  });
 
   const listaSubcategorias = (
     <ul className="space-y-3">

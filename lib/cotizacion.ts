@@ -1,7 +1,5 @@
 import type { PedidoFotocopia, PreciosFotocopias } from "@/types";
 
-// TODO: migrar a esta función desde components/FotocopiasForm.tsx, que todavía
-// define su propia copia de este cálculo (calcularTotal) en vez de importar de acá.
 export function calcularTotalFotocopias(
   hojasTotal: number,
   color: PedidoFotocopia["color"],

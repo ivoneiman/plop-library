@@ -4,6 +4,8 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { upload } from "@vercel/blob/client";
 import { PDFDocument } from "pdf-lib";
 import { buildWhatsAppUrl, construirMensajeFotocopias } from "@/lib/whatsapp";
+import { calcularTotalFotocopias } from "@/lib/cotizacion";
+import { CotizacionFotocopias } from "@/components/CotizacionFotocopias";
 import type { PedidoFotocopia, PreciosFotocopias } from "@/types";
 
 type Props = {
@@ -24,24 +26,6 @@ const LIMITE_HOJAS = 400;
 
 type Estado = "idle" | "enviando" | "enviado" | "error";
 type ModoPaginas = "auto" | "manual";
-
-const formatoPrecio = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 });
-
-function calcularTotal(
-  hojasTotal: number,
-  color: PedidoFotocopia["color"],
-  faz: PedidoFotocopia["faz"],
-  anillado: boolean,
-  precios: PreciosFotocopias,
-): number {
-  const precioBase = color === "Color" ? precios.precioCopiaColor : precios.precioCopiaByN;
-  const subtotal = hojasTotal * precioBase;
-  const descuentoDobleFaz =
-    faz === "Doble faz" ? subtotal * (precios.descuentoDobleFazPorcentaje / 100) : 0;
-  const totalAnillado = anillado ? precios.precioAnillado : 0;
-
-  return Math.max(0, subtotal - descuentoDobleFaz + totalAnillado);
-}
 
 export function FotocopiasForm({ whatsapp, precios }: Props) {
   const inputArchivoRef = useRef<HTMLInputElement>(null);
@@ -64,7 +48,7 @@ export function FotocopiasForm({ whatsapp, precios }: Props) {
   const [anillado, setAnillado] = useState(false);
 
   const hojasTotal = archivo ? paginasArchivo * cantidad : 0;
-  const totalEstimado = calcularTotal(hojasTotal, color, faz, anillado, precios);
+  const totalEstimado = calcularTotalFotocopias(hojasTotal, color, faz, anillado, precios);
   const superaLimite = hojasTotal > LIMITE_HOJAS;
 
   async function handleArchivoChange(evento: ChangeEvent<HTMLInputElement>) {
@@ -145,7 +129,7 @@ export function FotocopiasForm({ whatsapp, precios }: Props) {
         comentario,
       };
 
-      const total = calcularTotal(hojasTotal, color, faz, anillado, precios);
+      const total = calcularTotalFotocopias(hojasTotal, color, faz, anillado, precios);
       const mensaje = construirMensajeFotocopias({
         nombreArchivo: pedidoConArchivo.archivoNombre,
         urlArchivo: pedidoConArchivo.archivoUrl,
@@ -427,19 +411,13 @@ export function FotocopiasForm({ whatsapp, precios }: Props) {
         />
       </div>
 
-      <div className="rounded-2xl border-2 border-dashed border-kraft-200 bg-paper-50 px-4 py-3">
-        <p className="font-display text-lg font-bold text-kraft-900">
-          Cotización estimada: ${formatoPrecio.format(totalEstimado)}
-        </p>
-        {archivo && (
-          <p className="mt-1 text-xs text-kraft-500">
-            {paginasArchivo} páginas × {cantidad} copias = {hojasTotal} hojas
-          </p>
-        )}
-        <p className="mt-1 text-xs text-kraft-400">
-          Es una estimación automática, sujeta a confirmación del local. No representa un cobro.
-        </p>
-      </div>
+      <CotizacionFotocopias
+        totalEstimado={totalEstimado}
+        hayArchivo={Boolean(archivo)}
+        paginasArchivo={paginasArchivo}
+        cantidad={cantidad}
+        hojasTotal={hojasTotal}
+      />
 
       {superaLimite && (
         <div className="rounded-2xl border-2 border-mustard-300 bg-mustard-50 px-4 py-3 text-sm font-semibold text-mustard-800">
