@@ -6,6 +6,7 @@ import { getConfig } from "@/lib/notion";
 import { buildLocalBusinessJsonLd } from "@/lib/schema";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { NEGOCIO, SITE_URL } from "@/lib/site";
+import { BottomNav } from "@/components/BottomNav";
 
 const rubik = Rubik({
   subsets: ["latin"],
@@ -77,8 +78,8 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="bg-paper-50 font-sans text-kraft-900 antialiased">
-        <header className="sticky top-0 z-50 bg-paper-50/95 shadow-sm backdrop-blur">
+      <body className="bg-paper-50 pb-16 font-sans text-kraft-900 antialiased md:pb-0">
+        <header className="sticky top-0 z-50 hidden bg-paper-50/95 shadow-sm backdrop-blur md:block">
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-16">
             <Link href="/" className="font-display text-2xl font-black text-mustard-500 active:scale-95">
               Plop!
@@ -173,6 +174,7 @@ export default async function RootLayout({
             © {new Date().getFullYear()} Plop! — Librería de barrio.
           </p>
         </footer>
+        <BottomNav />
       </body>
     </html>
   );
