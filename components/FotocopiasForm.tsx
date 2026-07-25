@@ -2,7 +2,6 @@
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { upload } from "@vercel/blob/client";
-import { PDFDocument } from "pdf-lib";
 import { buildWhatsAppUrl, construirMensajeFotocopias } from "@/lib/whatsapp";
 import type { PedidoFotocopia, PreciosFotocopias } from "@/types";
 
@@ -90,6 +89,7 @@ export function FotocopiasForm({ whatsapp, precios }: Props) {
     if (nuevoArchivo.type === "application/pdf") {
       setLeyendoPdf(true);
       try {
+        const { PDFDocument } = await import("pdf-lib");
         const bytes = await nuevoArchivo.arrayBuffer();
         const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
         setPaginasArchivo(Math.max(1, pdf.getPageCount()));
