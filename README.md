@@ -1,6 +1,7 @@
 # Plop! Librería
 
-Proyecto personal que busca solucionar los problemas que identifiqué en la gestión y ventas de la librería **Plop!**.
+Proyecto personal que busca solucionar los problemas que identifiqué en la gestión y ventas de la librería **Plop!**. Utilicé Claude Code Pro como code agent para un despliegue rápido y seguro. 
+Tambien considero este proyecto como un aprendizaje. Al interactuar con agentes de código en proyectos reales, el trabajo debe ser más cauteloso y vigilado por el desarrollador, por eso, puse en práctica mis conocimientos de refactoring, protección de la calidad del producto, buenas prácticas de diseño, y demás.
 
 ## El problema
 
