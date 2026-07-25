@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import heroImg from "@/public/images/home/plop-libreria-frente-vidriera-costado.webp";
 import { getCatalogo, getConfig, getProductosPorNombre } from "@/lib/notion";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 
 export const revalidate = 300;
+
+// Placeholder gris genérico para imágenes remotas de Notion (no se puede generar blur real sin bajar cada foto).
+const SHIMMER_BLUR =
+  "data:image/svg+xml;base64," +
+  Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="#e7ded1"/></svg>'
+  ).toString("base64");
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -235,10 +243,11 @@ export default async function Home() {
           </div>
           <div className="relative aspect-[4/3] w-full -rotate-1 overflow-hidden rounded-[2rem] border-4 border-kraft-500 shadow-sticker-lg transition-transform duration-300 hover:rotate-0 md:w-1/2">
             <Image
-              src="/images/home/plop-libreria-frente-vidriera-costado.webp"
+              src={heroImg}
               alt="Vidriera de Plop!, librería de barrio"
               fill
               priority
+              placeholder="blur"
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
             />
@@ -366,6 +375,8 @@ export default async function Home() {
                   src={item.imagen}
                   alt={item.titulo}
                   fill
+                  placeholder="blur"
+                  blurDataURL={SHIMMER_BLUR}
                   sizes="(max-width: 768px) 100vw, 33vw"
                   className="object-cover"
                 />
