@@ -172,7 +172,7 @@ export default async function Home() {
     <main className="min-h-screen bg-paper-50">
       {/* Hero mobile: saludo + ícono, sin foto (idéntico a mockup mobile de Stitch) */}
       <section className="flex flex-col items-center gap-4 px-4 pt-6 text-center md:hidden">
-        <div className="mb-1 flex h-24 w-24 rotate-3 items-center justify-center rounded-full border-2 border-kraft-500 bg-mustard-500 shadow-[4px_4px_0_0_rgba(147,105,59,1)]">
+        <div className="mb-1 flex h-24 w-24 rotate-3 items-center justify-center rounded-full border-2 border-kraft-500 bg-mustard-500 shadow-sticker">
           <svg viewBox="0 0 24 24" fill="currentColor" className="h-11 w-11 text-mustard-900">
             <path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2Zm7 12 .9 2.6L22 17.5l-2.1.9L19 21l-.9-2.6L16 17.5l2.1-.9L19 14ZM5 14l.9 2.6L8 17.5l-2.1.9L5 21l-.9-2.6L2 17.5l2.1-.9L5 14Z" />
           </svg>
@@ -191,7 +191,7 @@ export default async function Home() {
         {/* Hero desktop: texto + foto (Stitch "Home - Plop! (Vibrant Alignment)") */}
         <section className="mb-16 hidden items-center gap-10 md:flex">
           <div className="flex flex-col gap-4 md:w-1/2">
-            <div className="mb-1 flex h-20 w-20 rotate-[-3deg] items-center justify-center rounded-full border-2 border-kraft-500 bg-mustard-500 shadow-[4px_4px_0_0_rgba(147,105,59,1)]">
+            <div className="mb-1 flex h-20 w-20 rotate-[-3deg] items-center justify-center rounded-full border-2 border-kraft-500 bg-mustard-500 shadow-sticker">
               <svg viewBox="0 0 24 24" fill="currentColor" className="h-9 w-9 text-mustard-900">
                 <path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2Zm7 12 .9 2.6L22 17.5l-2.1.9L19 21l-.9-2.6L16 17.5l2.1-.9L19 14ZM5 14l.9 2.6L8 17.5l-2.1.9L5 21l-.9-2.6L2 17.5l2.1-.9L5 14Z" />
               </svg>
@@ -204,7 +204,7 @@ export default async function Home() {
               ambiente cálido y cerca tuyo.
             </p>
             {(config.direccion || config.horarioLunVie || config.horarioSab) && (
-              <div className="inline-flex flex-col items-start gap-2 self-start rounded-2xl border-2 border-kraft-500 bg-mustard-50 p-4 text-sm font-bold text-kraft-700 shadow-[4px_4px_0_0_rgba(147,105,59,1)] sm:flex-row sm:items-center sm:gap-4">
+              <div className="inline-flex flex-col items-start gap-2 self-start rounded-2xl border-2 border-kraft-500 bg-mustard-50 p-4 text-sm font-bold text-kraft-700 shadow-sticker sm:flex-row sm:items-center sm:gap-4">
                 {config.direccion && (
                   <span className="flex items-center gap-1.5">
                     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-accent-pink-500" stroke="currentColor" strokeWidth={1.8}>
@@ -233,7 +233,7 @@ export default async function Home() {
               </div>
             )}
           </div>
-          <div className="relative aspect-[4/3] w-full -rotate-1 overflow-hidden rounded-[2rem] border-4 border-kraft-500 shadow-[8px_8px_0_0_rgba(147,105,59,1)] transition-transform duration-300 hover:rotate-0 md:w-1/2">
+          <div className="relative aspect-[4/3] w-full -rotate-1 overflow-hidden rounded-[2rem] border-4 border-kraft-500 shadow-sticker-lg transition-transform duration-300 hover:rotate-0 md:w-1/2">
             <Image
               src="/images/home/plop-libreria-frente-vidriera-costado.webp"
               alt="Vidriera de Plop!, librería de barrio"
@@ -251,7 +251,7 @@ export default async function Home() {
             <Link
               key={acceso.href}
               href={acceso.href}
-              className={`flex items-center justify-center gap-2 rounded-xl border-2 border-kraft-500 bg-white p-4 text-center shadow-[4px_4px_0_0_rgba(147,105,59,1)] transition-all active:translate-y-1 active:shadow-none ${
+              className={`flex items-center justify-center gap-2 rounded-xl border-2 border-kraft-500 bg-white p-4 text-center shadow-sticker transition-all active:translate-y-1 active:shadow-none ${
                 acceso.mobileSpan2 ? "col-span-2 flex-row" : "flex-col"
               }`}
             >
@@ -271,7 +271,7 @@ export default async function Home() {
               <Link
                 key={acceso.href}
                 href={acceso.href}
-                className="group flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-[2rem] border-2 border-kraft-500 bg-white p-6 text-center shadow-[4px_4px_0_0_rgba(147,105,59,1)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[6px_6px_0_0_rgba(147,105,59,1)]"
+                className="group flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-[2rem] border-2 border-kraft-500 bg-white p-6 text-center shadow-sticker transition-all duration-300 hover:-translate-y-1 hover:shadow-sticker-hover"
               >
                 <div className={`flex h-20 w-20 rotate-3 items-center justify-center rounded-2xl transition-transform group-hover:rotate-6 ${clases.iconoBg}`}>
                   <span className={clases.iconoTexto}>{acceso.icono}</span>
@@ -359,7 +359,7 @@ export default async function Home() {
           {destacados.map((item) => (
             <div
               key={item.titulo}
-              className="group flex flex-col overflow-hidden rounded-[2rem] border-2 border-kraft-100 bg-white shadow-[0_8px_24px_rgba(147,105,59,0.1)] transition-all duration-300 md:border-kraft-500 md:shadow-[4px_4px_0_0_rgba(147,105,59,1)] md:hover:-translate-y-1 md:hover:shadow-[6px_6px_0_0_rgba(147,105,59,1)]"
+              className="group flex flex-col overflow-hidden rounded-[2rem] border-2 border-kraft-100 bg-white shadow-soft transition-all duration-300 md:border-kraft-500 md:shadow-sticker md:hover:-translate-y-1 md:hover:shadow-sticker-hover"
             >
               <div className="relative h-64 w-full md:h-80 md:border-b-2 md:border-kraft-500">
                 <Image
@@ -392,7 +392,7 @@ export default async function Home() {
               return (
                 <div
                   key={testimonio.nombre}
-                  className="z-1-shadow relative rounded-[2rem] border-2 border-kraft-100 p-6"
+                  className="shadow-soft relative rounded-[2rem] border-2 border-kraft-100 p-6"
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor" className={`absolute right-4 top-4 h-14 w-14 ${clases.quote}`}>
                     <path d="M7 7h4v6l-2 4H6l2-4H7V7Zm8 0h4v6l-2 4h-3l2-4h-1V7Z" />
@@ -417,7 +417,7 @@ export default async function Home() {
 
         {/* Encontranos acá: solo mobile, el desktop ya muestra dirección/horario en el hero */}
         {(config.direccion || config.horarioLunVie || config.horarioSab) && (
-          <section className="rounded-xl border-2 border-kraft-500 bg-mustard-500 p-5 text-mustard-900 shadow-[4px_4px_0_0_rgba(147,105,59,1)] md:hidden">
+          <section className="rounded-xl border-2 border-kraft-500 bg-mustard-500 p-5 text-mustard-900 shadow-sticker md:hidden">
             <div className="flex items-start gap-3">
               <svg viewBox="0 0 24 24" fill="none" className="h-8 w-8 shrink-0" stroke="currentColor" strokeWidth={1.6}>
                 <path

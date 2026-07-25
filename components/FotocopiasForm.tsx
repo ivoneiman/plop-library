@@ -195,7 +195,7 @@ export function FotocopiasForm({ whatsapp, precios }: Props) {
     const linkWhatsapp = buildWhatsAppUrl(whatsapp, mensajeWhatsapp);
 
     return (
-      <div className="z-1-shadow mt-6 rounded-2xl border-2 border-green-accent bg-green-accent/10 px-4 py-6 text-center">
+      <div className="shadow-soft mt-6 rounded-2xl border-2 border-green-accent bg-green-accent/10 px-4 py-6 text-center">
         <p className="font-display text-lg font-bold text-green-accent">¡Pedido enviado!</p>
         <p className="mt-1 text-sm text-kraft-600">
           Ya te abrimos WhatsApp con el detalle del pedido. Si no se abrió, tocá el botón de abajo.
@@ -215,7 +215,7 @@ export function FotocopiasForm({ whatsapp, precios }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="z-1-shadow space-y-6 rounded-3xl border-2 border-kraft-100 bg-white p-5 sm:p-8"
+      className="shadow-soft space-y-6 rounded-3xl border-2 border-kraft-100 bg-white p-5 sm:p-8"
     >
       <div className="space-y-2">
         <label htmlFor="archivo" className="block text-sm font-bold text-kraft-700">
