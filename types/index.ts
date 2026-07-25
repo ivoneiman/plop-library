@@ -21,9 +21,17 @@ export type Config = {
 export type PedidoFotocopia = {
   archivoUrl: string;
   archivoNombre: string;
+  paginasArchivo: number;
   cantidad: number;
   color: "Color" | "Blanco y negro";
   faz: "Simple faz" | "Doble faz";
   anillado: boolean;
   comentario: string;
+};
+
+export type PreciosFotocopias = {
+  precioCopiaByN: number;
+  precioCopiaColor: number;
+  descuentoDobleFazPorcentaje: number;
+  precioAnillado: number;
 };

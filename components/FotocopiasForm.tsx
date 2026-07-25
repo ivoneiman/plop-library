@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { upload } from "@vercel/blob/client";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
-import type { PedidoFotocopia } from "@/types";
+import { PDFDocument } from "pdf-lib";
+import { buildWhatsAppUrl, construirMensajeFotocopias } from "@/lib/whatsapp";
+import type { PedidoFotocopia, PreciosFotocopias } from "@/types";
 
 type Props = {
   whatsapp: string;
+  precios: PreciosFotocopias;
 };
 
 const TAMANIO_MAXIMO = 10 * 1024 * 1024;
@@ -18,13 +20,91 @@ const TIPOS_ACEPTADOS = [
   "image/jpeg",
   "image/webp",
 ];
+const LIMITE_HOJAS = 400;
 
 type Estado = "idle" | "enviando" | "enviado" | "error";
+type ModoPaginas = "auto" | "manual";
 
-export function FotocopiasForm({ whatsapp }: Props) {
+const formatoPrecio = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 });
+
+function calcularTotal(
+  hojasTotal: number,
+  color: PedidoFotocopia["color"],
+  faz: PedidoFotocopia["faz"],
+  anillado: boolean,
+  precios: PreciosFotocopias,
+): number {
+  const precioBase = color === "Color" ? precios.precioCopiaColor : precios.precioCopiaByN;
+  const subtotal = hojasTotal * precioBase;
+  const descuentoDobleFaz =
+    faz === "Doble faz" ? subtotal * (precios.descuentoDobleFazPorcentaje / 100) : 0;
+  const totalAnillado = anillado ? precios.precioAnillado : 0;
+
+  return Math.max(0, subtotal - descuentoDobleFaz + totalAnillado);
+}
+
+export function FotocopiasForm({ whatsapp, precios }: Props) {
+  const inputArchivoRef = useRef<HTMLInputElement>(null);
+
   const [estado, setEstado] = useState<Estado>("idle");
   const [errorMensaje, setErrorMensaje] = useState("");
   const [pedido, setPedido] = useState<PedidoFotocopia | null>(null);
+  const [nombreCliente, setNombreCliente] = useState("");
+  const [totalPedido, setTotalPedido] = useState(0);
+
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [archivoError, setArchivoError] = useState("");
+  const [paginasArchivo, setPaginasArchivo] = useState(1);
+  const [modoPaginas, setModoPaginas] = useState<ModoPaginas>("manual");
+  const [leyendoPdf, setLeyendoPdf] = useState(false);
+
+  const [cantidad, setCantidad] = useState(1);
+  const [color, setColor] = useState<PedidoFotocopia["color"]>("Blanco y negro");
+  const [faz, setFaz] = useState<PedidoFotocopia["faz"]>("Simple faz");
+  const [anillado, setAnillado] = useState(false);
+
+  const hojasTotal = archivo ? paginasArchivo * cantidad : 0;
+  const totalEstimado = calcularTotal(hojasTotal, color, faz, anillado, precios);
+  const superaLimite = hojasTotal > LIMITE_HOJAS;
+
+  async function handleArchivoChange(evento: ChangeEvent<HTMLInputElement>) {
+    const nuevoArchivo = evento.target.files?.[0] ?? null;
+    setArchivoError("");
+    setArchivo(null);
+
+    if (!nuevoArchivo) return;
+
+    if (nuevoArchivo.size > TAMANIO_MAXIMO) {
+      setArchivoError("El archivo supera el máximo de 10MB.");
+      evento.target.value = "";
+      return;
+    }
+    if (!TIPOS_ACEPTADOS.includes(nuevoArchivo.type)) {
+      setArchivoError("Formato no admitido. Subí un PDF, Word o imagen.");
+      evento.target.value = "";
+      return;
+    }
+
+    setArchivo(nuevoArchivo);
+
+    if (nuevoArchivo.type === "application/pdf") {
+      setLeyendoPdf(true);
+      try {
+        const bytes = await nuevoArchivo.arrayBuffer();
+        const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
+        setPaginasArchivo(Math.max(1, pdf.getPageCount()));
+        setModoPaginas("auto");
+      } catch {
+        setModoPaginas("manual");
+        setPaginasArchivo(1);
+      } finally {
+        setLeyendoPdf(false);
+      }
+    } else {
+      setModoPaginas("manual");
+      setPaginasArchivo(1);
+    }
+  }
 
   async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -32,30 +112,19 @@ export function FotocopiasForm({ whatsapp }: Props) {
 
     const formulario = evento.currentTarget;
     const datos = new FormData(formulario);
-    const archivo = datos.get("archivo") as File | null;
+    const nombre = ((datos.get("nombre") as string) ?? "").trim();
 
-    if (!archivo || archivo.size === 0) {
+    if (!archivo) {
       setErrorMensaje("Elegí un archivo para subir.");
       return;
     }
-    if (archivo.size > TAMANIO_MAXIMO) {
-      setErrorMensaje("El archivo supera el máximo de 10MB.");
+    if (!nombre) {
+      setErrorMensaje("Contanos tu nombre para poder confirmarte el pedido.");
       return;
     }
-    if (!TIPOS_ACEPTADOS.includes(archivo.type)) {
-      setErrorMensaje("Formato no admitido. Subí un PDF, Word o imagen.");
-      return;
-    }
+    if (superaLimite) return;
 
-    const nuevoPedido: PedidoFotocopia = {
-      archivoUrl: "",
-      archivoNombre: archivo.name,
-      cantidad: Number(datos.get("cantidad")) || 1,
-      color: datos.get("color") as PedidoFotocopia["color"],
-      faz: datos.get("faz") as PedidoFotocopia["faz"],
-      anillado: datos.get("anillado") === "on",
-      comentario: (datos.get("comentario") as string) ?? "",
-    };
+    const comentario = (datos.get("comentario") as string) ?? "";
 
     setEstado("enviando");
 
@@ -65,36 +134,71 @@ export function FotocopiasForm({ whatsapp }: Props) {
         handleUploadUrl: "/api/fotocopias/upload",
       });
 
-      const pedidoConArchivo: PedidoFotocopia = { ...nuevoPedido, archivoUrl: blob.url };
+      const pedidoConArchivo: PedidoFotocopia = {
+        archivoUrl: blob.url,
+        archivoNombre: archivo.name,
+        paginasArchivo,
+        cantidad,
+        color,
+        faz,
+        anillado,
+        comentario,
+      };
 
-      const respuesta = await fetch("/api/fotocopias/webhook", {
+      const total = calcularTotal(hojasTotal, color, faz, anillado, precios);
+      const mensaje = construirMensajeFotocopias({
+        nombreArchivo: pedidoConArchivo.archivoNombre,
+        urlArchivo: pedidoConArchivo.archivoUrl,
+        paginasArchivo,
+        cantidadCopias: cantidad,
+        hojasTotal,
+        color,
+        dobleFaz: faz === "Doble faz",
+        anillado,
+        total,
+        nombre,
+      });
+      const linkWhatsapp = buildWhatsAppUrl(whatsapp, mensaje);
+
+      // Best-effort: no bloquea el envío por WhatsApp si el mail al local falla.
+      fetch("/api/fotocopias/webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(pedidoConArchivo),
-      });
-
-      if (!respuesta.ok) {
-        throw new Error("No se pudo avisar al local");
-      }
+      }).catch(() => {});
 
       setPedido(pedidoConArchivo);
+      setNombreCliente(nombre);
+      setTotalPedido(total);
       setEstado("enviado");
+
+      window.open(linkWhatsapp, "_blank", "noopener,noreferrer");
     } catch {
-      setErrorMensaje("Hubo un problema al enviar el pedido. Probá de nuevo.");
+      setErrorMensaje("Hubo un problema al subir el archivo. Probá de nuevo.");
       setEstado("error");
     }
   }
 
   if (estado === "enviado" && pedido) {
-    const mensajeWhatsapp = `Hola! Acabo de enviar un pedido de fotocopias (${pedido.archivoNombre}, ${pedido.cantidad} copias, ${pedido.color.toLowerCase()}, ${pedido.faz.toLowerCase()}${pedido.anillado ? ", con anillado" : ""}). ¿Me confirman cuándo lo puedo pasar a retirar?`;
+    const mensajeWhatsapp = construirMensajeFotocopias({
+      nombreArchivo: pedido.archivoNombre,
+      urlArchivo: pedido.archivoUrl,
+      paginasArchivo: pedido.paginasArchivo,
+      cantidadCopias: pedido.cantidad,
+      hojasTotal: pedido.paginasArchivo * pedido.cantidad,
+      color: pedido.color,
+      dobleFaz: pedido.faz === "Doble faz",
+      anillado: pedido.anillado,
+      total: totalPedido,
+      nombre: nombreCliente,
+    });
     const linkWhatsapp = buildWhatsAppUrl(whatsapp, mensajeWhatsapp);
 
     return (
       <div className="z-1-shadow mt-6 rounded-2xl border-2 border-green-accent bg-green-accent/10 px-4 py-6 text-center">
         <p className="font-display text-lg font-bold text-green-accent">¡Pedido enviado!</p>
         <p className="mt-1 text-sm text-kraft-600">
-          Recibimos tu archivo y el detalle del pedido. Te confirmamos por WhatsApp cuándo pasarlo a
-          retirar.
+          Ya te abrimos WhatsApp con el detalle del pedido. Si no se abrió, tocá el botón de abajo.
         </p>
         <a
           href={linkWhatsapp}
@@ -102,7 +206,7 @@ export function FotocopiasForm({ whatsapp }: Props) {
           rel="noopener noreferrer"
           className="mt-4 inline-flex items-center justify-center rounded-xl bg-mustard-500 px-5 py-3 font-bold text-mustard-900 transition hover:brightness-95"
         >
-          Avisar también por WhatsApp
+          Enviar pedido por WhatsApp
         </a>
       </div>
     );
@@ -115,8 +219,13 @@ export function FotocopiasForm({ whatsapp }: Props) {
     >
       <div className="space-y-2">
         <label htmlFor="archivo" className="block text-sm font-bold text-kraft-700">
-          Archivos a imprimir (PDF, Word o imagen, máx 10MB)
+          Archivo a imprimir (PDF, Word o imagen, máx 10MB)
         </label>
+        <p className="text-xs text-kraft-500">
+          Por ahora aceptamos un archivo por pedido. ¿Tenés varios? Mandanos uno por pedido, así
+          los organizamos mejor 🙂
+        </p>
+
         <div className="rounded-2xl border-2 border-dashed border-kraft-300 bg-paper-50 p-6 text-center transition-colors hover:bg-paper-100">
           <svg
             viewBox="0 0 24 24"
@@ -132,15 +241,82 @@ export function FotocopiasForm({ whatsapp }: Props) {
             />
           </svg>
           <input
+            ref={inputArchivoRef}
             id="archivo"
             name="archivo"
             type="file"
             accept=".pdf,.doc,.docx,image/*"
-            required
-            className="mx-auto block text-sm text-kraft-700 file:mr-3 file:rounded-xl file:border-0 file:bg-kraft-100 file:px-4 file:py-2 file:text-sm file:font-bold file:text-kraft-800 hover:file:bg-kraft-200"
+            onChange={handleArchivoChange}
+            className="sr-only"
           />
+          <button
+            type="button"
+            onClick={() => inputArchivoRef.current?.click()}
+            className="rounded-xl bg-kraft-100 px-4 py-2 text-sm font-bold text-kraft-800 transition hover:bg-kraft-200"
+          >
+            Seleccionar archivo
+          </button>
           <p className="mt-2 text-xs text-kraft-400">Soporta PDF, Word, JPG, PNG</p>
         </div>
+
+        {archivo && (
+          <div className="flex items-center gap-2 rounded-xl border-2 border-green-accent bg-green-accent/10 px-4 py-3">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-5 w-5 flex-shrink-0 text-green-accent"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="break-words text-sm font-semibold text-kraft-800">{archivo.name}</span>
+          </div>
+        )}
+        {archivoError && <p className="text-sm font-semibold text-mustard-700">{archivoError}</p>}
+      </div>
+
+      {archivo && (
+        <div className="space-y-2">
+          <label className="block text-sm font-bold text-kraft-700">
+            Cantidad de páginas de tu archivo
+          </label>
+          {modoPaginas === "auto" ? (
+            <p className="w-fit rounded-xl border-2 border-kraft-200 bg-paper-50 px-4 py-2.5 font-bold text-kraft-900">
+              {leyendoPdf ? "Contando páginas…" : `${paginasArchivo} páginas detectadas`}
+            </p>
+          ) : (
+            <>
+              <input
+                type="number"
+                min={1}
+                value={paginasArchivo}
+                onChange={(evento) =>
+                  setPaginasArchivo(Math.max(1, Number(evento.target.value) || 1))
+                }
+                required
+                className="w-24 rounded-xl border-2 border-kraft-200 bg-paper-50 px-3 py-2.5 text-center font-bold text-kraft-900 focus:border-mustard-400 focus:outline-none"
+              />
+              <p className="text-xs text-kraft-400">
+                El local confirma la cantidad real al revisar tu pedido.
+              </p>
+            </>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <label htmlFor="nombre" className="block text-sm font-bold text-kraft-700">
+          Tu nombre
+        </label>
+        <input
+          id="nombre"
+          name="nombre"
+          type="text"
+          required
+          placeholder="¿Cómo te llamamos?"
+          className="w-full rounded-xl border-2 border-kraft-200 bg-paper-50 px-4 py-2.5 text-kraft-900 placeholder:text-kraft-300 focus:border-mustard-400 focus:outline-none"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -153,7 +329,8 @@ export function FotocopiasForm({ whatsapp }: Props) {
             name="cantidad"
             type="number"
             min={1}
-            defaultValue={1}
+            value={cantidad}
+            onChange={(evento) => setCantidad(Math.max(1, Number(evento.target.value) || 1))}
             required
             className="w-24 rounded-xl border-2 border-kraft-200 bg-paper-50 px-3 py-2.5 text-center font-bold text-kraft-900 focus:border-mustard-400 focus:outline-none"
           />
@@ -167,7 +344,8 @@ export function FotocopiasForm({ whatsapp }: Props) {
                 type="radio"
                 name="color"
                 value="Blanco y negro"
-                defaultChecked
+                checked={color === "Blanco y negro"}
+                onChange={() => setColor("Blanco y negro")}
                 required
                 className="peer sr-only"
               />
@@ -176,7 +354,14 @@ export function FotocopiasForm({ whatsapp }: Props) {
               </span>
             </label>
             <label className="flex-1 border-l-2 border-kraft-200">
-              <input type="radio" name="color" value="Color" className="peer sr-only" />
+              <input
+                type="radio"
+                name="color"
+                value="Color"
+                checked={color === "Color"}
+                onChange={() => setColor("Color")}
+                className="peer sr-only"
+              />
               <span className="block cursor-pointer px-3 py-2.5 text-center text-sm font-bold text-kraft-700 transition-colors peer-checked:bg-mustard-100 peer-checked:text-mustard-700">
                 Color
               </span>
@@ -192,7 +377,8 @@ export function FotocopiasForm({ whatsapp }: Props) {
                 type="radio"
                 name="faz"
                 value="Simple faz"
-                defaultChecked
+                checked={faz === "Simple faz"}
+                onChange={() => setFaz("Simple faz")}
                 required
                 className="peer sr-only"
               />
@@ -201,7 +387,14 @@ export function FotocopiasForm({ whatsapp }: Props) {
               </span>
             </label>
             <label className="flex-1 border-l-2 border-kraft-200">
-              <input type="radio" name="faz" value="Doble faz" className="peer sr-only" />
+              <input
+                type="radio"
+                name="faz"
+                value="Doble faz"
+                checked={faz === "Doble faz"}
+                onChange={() => setFaz("Doble faz")}
+                className="peer sr-only"
+              />
               <span className="block cursor-pointer px-3 py-2.5 text-center text-sm font-bold text-kraft-700 transition-colors peer-checked:bg-mustard-100 peer-checked:text-mustard-700">
                 Doble faz
               </span>
@@ -213,6 +406,8 @@ export function FotocopiasForm({ whatsapp }: Props) {
           <input
             type="checkbox"
             name="anillado"
+            checked={anillado}
+            onChange={(evento) => setAnillado(evento.target.checked)}
             className="h-5 w-5 rounded border-2 border-kraft-300 text-mustard-500 focus:ring-mustard-400"
           />
           Anillado
@@ -232,12 +427,41 @@ export function FotocopiasForm({ whatsapp }: Props) {
         />
       </div>
 
+      <div className="rounded-2xl border-2 border-dashed border-kraft-200 bg-paper-50 px-4 py-3">
+        <p className="font-display text-lg font-bold text-kraft-900">
+          Cotización estimada: ${formatoPrecio.format(totalEstimado)}
+        </p>
+        {archivo && (
+          <p className="mt-1 text-xs text-kraft-500">
+            {paginasArchivo} páginas × {cantidad} copias = {hojasTotal} hojas
+          </p>
+        )}
+        <p className="mt-1 text-xs text-kraft-400">
+          Es una estimación automática, sujeta a confirmación del local. No representa un cobro.
+        </p>
+      </div>
+
+      {superaLimite && (
+        <div className="rounded-2xl border-2 border-mustard-300 bg-mustard-50 px-4 py-3 text-sm font-semibold text-mustard-800">
+          Este pedido supera lo que podemos resolver en el momento (400 hojas). Escribinos directo
+          por WhatsApp para coordinarlo.
+          <a
+            href={buildWhatsAppUrl(whatsapp)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 block underline"
+          >
+            Abrir WhatsApp
+          </a>
+        </div>
+      )}
+
       {errorMensaje && <p className="text-sm font-semibold text-mustard-700">{errorMensaje}</p>}
 
       <div className="border-t-2 border-kraft-100 pt-5">
         <button
           type="submit"
-          disabled={estado === "enviando"}
+          disabled={estado === "enviando" || leyendoPdf || superaLimite}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-mustard-500 py-4 font-bold text-mustard-900 shadow-md transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {estado === "enviando" ? "Enviando..." : "Enviar pedido"}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getConfig } from "@/lib/notion";
+import { getConfig, getPreciosFotocopias } from "@/lib/notion";
 import { FotocopiasForm } from "@/components/FotocopiasForm";
 import { SITE_URL } from "@/lib/site";
 
@@ -29,7 +29,7 @@ const servicios = [
 ];
 
 export default async function FotocopiasPage() {
-  const config = await getConfig();
+  const [config, precios] = await Promise.all([getConfig(), getPreciosFotocopias()]);
 
   return (
     <main className="min-h-screen bg-paper-50 px-4 py-10 sm:px-6">
@@ -54,7 +54,7 @@ export default async function FotocopiasPage() {
           ))}
         </ul>
 
-        <FotocopiasForm whatsapp={config.whatsapp} />
+        <FotocopiasForm whatsapp={config.whatsapp} precios={precios} />
       </div>
     </main>
   );

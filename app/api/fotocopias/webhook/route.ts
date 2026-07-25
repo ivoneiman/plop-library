@@ -8,6 +8,7 @@ function esPedidoValido(valor: unknown): valor is PedidoFotocopia {
   return (
     typeof pedido.archivoUrl === "string" &&
     typeof pedido.archivoNombre === "string" &&
+    typeof pedido.paginasArchivo === "number" &&
     typeof pedido.cantidad === "number" &&
     (pedido.color === "Color" || pedido.color === "Blanco y negro") &&
     (pedido.faz === "Simple faz" || pedido.faz === "Doble faz") &&
@@ -32,8 +33,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     html: `
       <h2>Nuevo pedido de fotocopias</h2>
       <ul>
-        <li><strong>Archivo:</strong> <a href="${body.archivoUrl}">${body.archivoNombre}</a></li>
+        <li><strong>Archivo:</strong> <a href="${body.archivoUrl}">${body.archivoNombre}</a> (${body.paginasArchivo} páginas)</li>
         <li><strong>Cantidad de copias:</strong> ${body.cantidad}</li>
+        <li><strong>Total de hojas:</strong> ${body.paginasArchivo * body.cantidad}</li>
         <li><strong>Color:</strong> ${body.color}</li>
         <li><strong>Faz:</strong> ${body.faz}</li>
         <li><strong>Anillado:</strong> ${body.anillado ? "Sí" : "No"}</li>

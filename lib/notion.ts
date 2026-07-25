@@ -4,7 +4,7 @@ import type {
   PageObjectResponse,
   QueryDataSourceResponse,
 } from "@notionhq/client/build/src/api-endpoints";
-import type { Config, Producto } from "@/types";
+import type { Config, PreciosFotocopias, Producto } from "@/types";
 
 export const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
@@ -132,5 +132,23 @@ export async function getConfig(): Promise<Config> {
     horarioSab: valores["Horario Sáb"] ?? "",
     whatsapp: valores["WhatsApp"] ?? "",
     instagram: valores["Instagram"] ?? "",
+  };
+}
+
+export async function getPreciosFotocopias(): Promise<PreciosFotocopias> {
+  const dataSourceId = await getDataSourceId(configDatabaseId);
+
+  const response = await notion.dataSources.query({
+    data_source_id: dataSourceId,
+  });
+
+  const items = response.results.filter(esPaginaCompleta).map(mapearConfigItem);
+  const valores = Object.fromEntries(items.map(({ campo, valor }) => [campo, valor]));
+
+  return {
+    precioCopiaByN: Number(valores["Precio Copia ByN"]) || 0,
+    precioCopiaColor: Number(valores["Precio Copia Color"]) || 0,
+    descuentoDobleFazPorcentaje: Number(valores["Descuento Doble Faz %"]) || 0,
+    precioAnillado: Number(valores["Precio Anillado"]) || 0,
   };
 }

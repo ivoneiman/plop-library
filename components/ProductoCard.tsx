@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { Producto } from "@/types";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { buildWhatsAppUrl, construirMensajeConsultaProducto } from "@/lib/whatsapp";
 
 type Props = {
   producto: Producto;
@@ -15,7 +15,7 @@ const formatoPrecio = new Intl.NumberFormat("es-AR", {
 });
 
 export function ProductoCard({ producto, whatsapp, variant = "grid" }: Props) {
-  const linkWhatsapp = buildWhatsAppUrl(whatsapp, `Hola! Me interesa ${producto.nombre}`);
+  const linkWhatsapp = buildWhatsAppUrl(whatsapp, construirMensajeConsultaProducto(producto));
   const esGaleria = variant === "gallery";
   const ultimasUnidades = producto.stock > 0 && producto.stock <= 3;
 
