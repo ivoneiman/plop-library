@@ -27,3 +27,10 @@ export type PedidoFotocopia = {
   anillado: boolean;
   comentario: string;
 };
+
+export type PreciosFotocopias = {
+  precioCopiaByN: number;
+  precioCopiaColor: number;
+  descuentoDobleFazPorcentaje: number;
+  precioAnillado: number;
+};

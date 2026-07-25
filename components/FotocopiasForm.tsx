@@ -2,11 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import { upload } from "@vercel/blob/client";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
-import type { PedidoFotocopia } from "@/types";
+import { buildWhatsAppUrl, construirMensajeFotocopias } from "@/lib/whatsapp";
+import type { PedidoFotocopia, PreciosFotocopias } from "@/types";
 
 type Props = {
   whatsapp: string;
+  precios: PreciosFotocopias;
 };
 
 const TAMANIO_MAXIMO = 10 * 1024 * 1024;
@@ -21,10 +22,37 @@ const TIPOS_ACEPTADOS = [
 
 type Estado = "idle" | "enviando" | "enviado" | "error";
 
-export function FotocopiasForm({ whatsapp }: Props) {
+const formatoPrecio = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 });
+
+function calcularTotal(
+  cantidad: number,
+  color: PedidoFotocopia["color"],
+  faz: PedidoFotocopia["faz"],
+  anillado: boolean,
+  precios: PreciosFotocopias,
+): number {
+  const precioBase = color === "Color" ? precios.precioCopiaColor : precios.precioCopiaByN;
+  const subtotal = cantidad * precioBase;
+  const descuentoDobleFaz =
+    faz === "Doble faz" ? subtotal * (precios.descuentoDobleFazPorcentaje / 100) : 0;
+  const totalAnillado = anillado ? cantidad * precios.precioAnillado : 0;
+
+  return Math.max(0, subtotal - descuentoDobleFaz + totalAnillado);
+}
+
+export function FotocopiasForm({ whatsapp, precios }: Props) {
   const [estado, setEstado] = useState<Estado>("idle");
   const [errorMensaje, setErrorMensaje] = useState("");
   const [pedido, setPedido] = useState<PedidoFotocopia | null>(null);
+  const [nombreCliente, setNombreCliente] = useState("");
+  const [totalPedido, setTotalPedido] = useState(0);
+
+  const [cantidad, setCantidad] = useState(1);
+  const [color, setColor] = useState<PedidoFotocopia["color"]>("Blanco y negro");
+  const [faz, setFaz] = useState<PedidoFotocopia["faz"]>("Simple faz");
+  const [anillado, setAnillado] = useState(false);
+
+  const totalEstimado = calcularTotal(cantidad, color, faz, anillado, precios);
 
   async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -33,6 +61,7 @@ export function FotocopiasForm({ whatsapp }: Props) {
     const formulario = evento.currentTarget;
     const datos = new FormData(formulario);
     const archivo = datos.get("archivo") as File | null;
+    const nombre = ((datos.get("nombre") as string) ?? "").trim();
 
     if (!archivo || archivo.size === 0) {
       setErrorMensaje("Elegí un archivo para subir.");
@@ -46,14 +75,18 @@ export function FotocopiasForm({ whatsapp }: Props) {
       setErrorMensaje("Formato no admitido. Subí un PDF, Word o imagen.");
       return;
     }
+    if (!nombre) {
+      setErrorMensaje("Contanos tu nombre para poder confirmarte el pedido.");
+      return;
+    }
 
     const nuevoPedido: PedidoFotocopia = {
       archivoUrl: "",
       archivoNombre: archivo.name,
-      cantidad: Number(datos.get("cantidad")) || 1,
-      color: datos.get("color") as PedidoFotocopia["color"],
-      faz: datos.get("faz") as PedidoFotocopia["faz"],
-      anillado: datos.get("anillado") === "on",
+      cantidad,
+      color,
+      faz,
+      anillado,
       comentario: (datos.get("comentario") as string) ?? "",
     };
 
@@ -78,6 +111,8 @@ export function FotocopiasForm({ whatsapp }: Props) {
       }
 
       setPedido(pedidoConArchivo);
+      setNombreCliente(nombre);
+      setTotalPedido(calcularTotal(cantidad, color, faz, anillado, precios));
       setEstado("enviado");
     } catch {
       setErrorMensaje("Hubo un problema al enviar el pedido. Probá de nuevo.");
@@ -86,15 +121,24 @@ export function FotocopiasForm({ whatsapp }: Props) {
   }
 
   if (estado === "enviado" && pedido) {
-    const mensajeWhatsapp = `Hola! Acabo de enviar un pedido de fotocopias (${pedido.archivoNombre}, ${pedido.cantidad} copias, ${pedido.color.toLowerCase()}, ${pedido.faz.toLowerCase()}${pedido.anillado ? ", con anillado" : ""}). ¿Me confirman cuándo lo puedo pasar a retirar?`;
+    const mensajeWhatsapp = construirMensajeFotocopias({
+      nombreArchivo: pedido.archivoNombre,
+      urlArchivo: pedido.archivoUrl,
+      cantidad: pedido.cantidad,
+      color: pedido.color,
+      dobleFaz: pedido.faz === "Doble faz",
+      anillado: pedido.anillado,
+      total: totalPedido,
+      nombre: nombreCliente,
+    });
     const linkWhatsapp = buildWhatsAppUrl(whatsapp, mensajeWhatsapp);
 
     return (
       <div className="z-1-shadow mt-6 rounded-2xl border-2 border-green-accent bg-green-accent/10 px-4 py-6 text-center">
         <p className="font-display text-lg font-bold text-green-accent">¡Pedido enviado!</p>
         <p className="mt-1 text-sm text-kraft-600">
-          Recibimos tu archivo y el detalle del pedido. Te confirmamos por WhatsApp cuándo pasarlo a
-          retirar.
+          Recibimos tu archivo y el detalle del pedido. Mandalo también por WhatsApp para que te lo
+          confirmemos más rápido.
         </p>
         <a
           href={linkWhatsapp}
@@ -102,7 +146,7 @@ export function FotocopiasForm({ whatsapp }: Props) {
           rel="noopener noreferrer"
           className="mt-4 inline-flex items-center justify-center rounded-xl bg-mustard-500 px-5 py-3 font-bold text-mustard-900 transition hover:brightness-95"
         >
-          Avisar también por WhatsApp
+          Enviar pedido por WhatsApp
         </a>
       </div>
     );
@@ -143,6 +187,20 @@ export function FotocopiasForm({ whatsapp }: Props) {
         </div>
       </div>
 
+      <div className="space-y-2">
+        <label htmlFor="nombre" className="block text-sm font-bold text-kraft-700">
+          Tu nombre
+        </label>
+        <input
+          id="nombre"
+          name="nombre"
+          type="text"
+          required
+          placeholder="¿Cómo te llamamos?"
+          className="w-full rounded-xl border-2 border-kraft-200 bg-paper-50 px-4 py-2.5 text-kraft-900 placeholder:text-kraft-300 focus:border-mustard-400 focus:outline-none"
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="space-y-2">
           <label htmlFor="cantidad" className="block text-sm font-bold text-kraft-700">
@@ -153,7 +211,8 @@ export function FotocopiasForm({ whatsapp }: Props) {
             name="cantidad"
             type="number"
             min={1}
-            defaultValue={1}
+            value={cantidad}
+            onChange={(evento) => setCantidad(Math.max(1, Number(evento.target.value) || 1))}
             required
             className="w-24 rounded-xl border-2 border-kraft-200 bg-paper-50 px-3 py-2.5 text-center font-bold text-kraft-900 focus:border-mustard-400 focus:outline-none"
           />
@@ -167,7 +226,8 @@ export function FotocopiasForm({ whatsapp }: Props) {
                 type="radio"
                 name="color"
                 value="Blanco y negro"
-                defaultChecked
+                checked={color === "Blanco y negro"}
+                onChange={() => setColor("Blanco y negro")}
                 required
                 className="peer sr-only"
               />
@@ -176,7 +236,14 @@ export function FotocopiasForm({ whatsapp }: Props) {
               </span>
             </label>
             <label className="flex-1 border-l-2 border-kraft-200">
-              <input type="radio" name="color" value="Color" className="peer sr-only" />
+              <input
+                type="radio"
+                name="color"
+                value="Color"
+                checked={color === "Color"}
+                onChange={() => setColor("Color")}
+                className="peer sr-only"
+              />
               <span className="block cursor-pointer px-3 py-2.5 text-center text-sm font-bold text-kraft-700 transition-colors peer-checked:bg-mustard-100 peer-checked:text-mustard-700">
                 Color
               </span>
@@ -192,7 +259,8 @@ export function FotocopiasForm({ whatsapp }: Props) {
                 type="radio"
                 name="faz"
                 value="Simple faz"
-                defaultChecked
+                checked={faz === "Simple faz"}
+                onChange={() => setFaz("Simple faz")}
                 required
                 className="peer sr-only"
               />
@@ -201,7 +269,14 @@ export function FotocopiasForm({ whatsapp }: Props) {
               </span>
             </label>
             <label className="flex-1 border-l-2 border-kraft-200">
-              <input type="radio" name="faz" value="Doble faz" className="peer sr-only" />
+              <input
+                type="radio"
+                name="faz"
+                value="Doble faz"
+                checked={faz === "Doble faz"}
+                onChange={() => setFaz("Doble faz")}
+                className="peer sr-only"
+              />
               <span className="block cursor-pointer px-3 py-2.5 text-center text-sm font-bold text-kraft-700 transition-colors peer-checked:bg-mustard-100 peer-checked:text-mustard-700">
                 Doble faz
               </span>
@@ -213,6 +288,8 @@ export function FotocopiasForm({ whatsapp }: Props) {
           <input
             type="checkbox"
             name="anillado"
+            checked={anillado}
+            onChange={(evento) => setAnillado(evento.target.checked)}
             className="h-5 w-5 rounded border-2 border-kraft-300 text-mustard-500 focus:ring-mustard-400"
           />
           Anillado
@@ -230,6 +307,15 @@ export function FotocopiasForm({ whatsapp }: Props) {
           placeholder="Aclaraciones sobre el pedido (opcional)"
           className="w-full resize-none rounded-2xl border-2 border-kraft-200 bg-paper-50 px-4 py-3 text-kraft-900 placeholder:text-kraft-300 focus:border-mustard-400 focus:outline-none"
         />
+      </div>
+
+      <div className="rounded-2xl border-2 border-dashed border-kraft-200 bg-paper-50 px-4 py-3">
+        <p className="font-display text-lg font-bold text-kraft-900">
+          Cotización estimada: ${formatoPrecio.format(totalEstimado)}
+        </p>
+        <p className="mt-1 text-xs text-kraft-400">
+          Es una estimación automática, sujeta a confirmación del local. No representa un cobro.
+        </p>
       </div>
 
       {errorMensaje && <p className="text-sm font-semibold text-mustard-700">{errorMensaje}</p>}
