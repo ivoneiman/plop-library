@@ -9,14 +9,12 @@ export function buildWhatsAppUrl(numero: string, mensaje?: string): string {
 const formatoPrecio = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 });
 
 export function construirMensajeConsultaProducto(
-  producto: Pick<Producto, "nombre" | "precio" | "categoria">,
+  producto: Pick<Producto, "nombre" | "precio">,
 ): string {
-  const emoji = producto.categoria === "Regalería" ? "🎁" : "📚";
+  return `¡Hola! Quiero consultar por este producto:
 
-  return `¡Hola! 👋 Quiero consultar por este producto:
-
-${emoji} ${producto.nombre}
-💰 $${formatoPrecio.format(producto.precio)}
+${producto.nombre}
+$${formatoPrecio.format(producto.precio)}
 
 ¿Está disponible?`;
 }
@@ -35,16 +33,16 @@ type DatosMensajeFotocopias = {
 };
 
 export function construirMensajeFotocopias(datos: DatosMensajeFotocopias): string {
-  return `¡Hola! 👋 Quiero hacer un pedido de fotocopias:
+  return `¡Hola! Quiero hacer un pedido de fotocopias:
 
-📄 Archivo: ${datos.nombreArchivo} (${datos.paginasArchivo} páginas)
-🔗 Ver archivo: ${datos.urlArchivo}
-🖨️ Copias: ${datos.cantidadCopias}
-📃 Total de hojas: ${datos.hojasTotal}
-🎨 Impresión: ${datos.color}
-📑 Doble faz: ${datos.dobleFaz ? "Sí" : "No"}
-📎 Anillado: ${datos.anillado ? "Sí" : "No"}
-💰 Cotización estimada: $${formatoPrecio.format(datos.total)}
+Archivo: ${datos.nombreArchivo} (${datos.paginasArchivo} páginas)
+Ver archivo: ${datos.urlArchivo}
+Copias: ${datos.cantidadCopias}
+Total de hojas: ${datos.hojasTotal}
+Impresión: ${datos.color}
+Doble faz: ${datos.dobleFaz ? "Sí" : "No"}
+Anillado: ${datos.anillado ? "Sí" : "No"}
+Cotización estimada: $${formatoPrecio.format(datos.total)}
 
 Mi nombre: ${datos.nombre}
 

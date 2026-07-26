@@ -22,7 +22,9 @@ export const metadata: Metadata = {
 
 export default async function CatalogoPage() {
   const [productos, config] = await Promise.all([getCatalogo(), getConfig()]);
-  const libros = productos.filter((producto) => producto.categoria === "Libros");
+  const libros = productos
+    .filter((producto) => producto.categoria === "Libros")
+    .sort((a, b) => Number(!!b.fotoUrl) - Number(!!a.fotoUrl));
 
   return (
     <main className="min-h-screen bg-paper-50 px-4 py-8 text-ink-800 sm:px-6">
