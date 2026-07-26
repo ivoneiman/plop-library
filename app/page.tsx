@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import heroImg from "@/public/images/home/plop-libreria-frente-vidriera-costado.webp";
+import { FotoPlaceholder } from "@/components/FotoPlaceholder";
 import { getCatalogo, getConfig, getProductosPorNombre } from "@/lib/notion";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 
@@ -341,9 +342,7 @@ export default async function Home() {
                           className="object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs text-kraft-300">
-                          Sin foto
-                        </div>
+                        <FotoPlaceholder categoria={producto.categoria} />
                       )}
                     </div>
                     <p className="hidden text-xs font-bold uppercase tracking-wider text-mustard-600 md:block">

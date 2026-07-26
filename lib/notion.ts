@@ -4,6 +4,7 @@ import type {
   PageObjectResponse,
   QueryDataSourceResponse,
 } from "@notionhq/client/build/src/api-endpoints";
+import { list, put } from "@vercel/blob";
 import type { Config, PreciosFotocopias, Producto } from "@/types";
 import { normalizar } from "./normalizar";
 
@@ -32,7 +33,39 @@ function esPaginaCompleta(
   return page.object === "page" && "properties" in page;
 }
 
-function mapearProducto(page: PageObjectResponse): Producto {
+function esUrlTemporalDeNotion(url: string): boolean {
+  return url.includes("amazonaws.com") || url.includes("notion-static.com");
+}
+
+// ponytail: sin lock entre requests concurrentes; en el peor caso dos
+// requests simultáneas migran la misma foto dos veces (subida duplicada
+// inofensiva, misma pathname), no una condición de carrera destructiva.
+async function obtenerFotoUrlEstable(pageId: string, notionUrl: string): Promise<string> {
+  const pathname = `productos/${pageId}.jpg`;
+
+  const { blobs } = await list({ prefix: pathname, limit: 1 });
+  const existente = blobs.find((blob) => blob.pathname === pathname);
+  if (existente) return existente.url;
+
+  try {
+    const respuesta = await fetch(notionUrl);
+    if (!respuesta.ok) throw new Error(`status ${respuesta.status}`);
+    const buffer = await respuesta.arrayBuffer();
+
+    const { url } = await put(pathname, buffer, {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: respuesta.headers.get("content-type") ?? "image/jpeg",
+    });
+
+    return url;
+  } catch (error) {
+    console.error(`No se pudo migrar la foto de Notion a Blob (página ${pageId}):`, error);
+    return notionUrl;
+  }
+}
+
+async function mapearProducto(page: PageObjectResponse): Promise<Producto> {
   const props = page.properties;
 
   const nombre =
@@ -54,13 +87,18 @@ function mapearProducto(page: PageObjectResponse): Producto {
   const stock = props.Stock?.type === "number" ? (props.Stock.number ?? 0) : 0;
 
   const primeraFoto = props.Foto?.type === "files" ? props.Foto.files[0] : undefined;
-  const fotoUrl = primeraFoto
+  const fotoUrlNotion = primeraFoto
     ? primeraFoto.type === "external"
       ? primeraFoto.external.url
       : primeraFoto.type === "file"
         ? primeraFoto.file.url
         : null
     : null;
+
+  const fotoUrl =
+    fotoUrlNotion && esUrlTemporalDeNotion(fotoUrlNotion)
+      ? await obtenerFotoUrlEstable(page.id, fotoUrlNotion)
+      : fotoUrlNotion;
 
   const disponible =
     props.Disponible?.type === "formula" && props.Disponible.formula.type === "boolean"
@@ -100,7 +138,7 @@ export async function getCatalogo(): Promise<Producto[]> {
     },
   });
 
-  return response.results.filter(esPaginaCompleta).map(mapearProducto);
+  return Promise.all(response.results.filter(esPaginaCompleta).map(mapearProducto));
 }
 
 export async function getProductosPorNombre(nombres: string[]): Promise<Producto[]> {
@@ -116,7 +154,7 @@ export async function getProductosPorNombre(nombres: string[]): Promise<Producto
     },
   });
 
-  return response.results.filter(esPaginaCompleta).map(mapearProducto);
+  return Promise.all(response.results.filter(esPaginaCompleta).map(mapearProducto));
 }
 
 function mapearConfigItem(page: PageObjectResponse): { campo: string; valor: string } {

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { Producto } from "@/types";
+import { FotoPlaceholder } from "@/components/FotoPlaceholder";
 import { buildWhatsAppUrl, construirMensajeConsultaProducto } from "@/lib/whatsapp";
 
 type Props = {
@@ -47,9 +48,7 @@ export function ProductoCard({ producto, whatsapp, variant = "grid" }: Props) {
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-sm text-kraft-300">
-            Sin foto
-          </div>
+          <FotoPlaceholder categoria={producto.categoria} />
         )}
       </div>
       <div className="flex flex-1 flex-col justify-between pt-3">
