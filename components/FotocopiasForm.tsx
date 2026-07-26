@@ -184,20 +184,22 @@ export function FotocopiasForm({ whatsapp, precios }: Props) {
         <p className="mt-1 text-sm text-kraft-600">
           Ya te abrimos WhatsApp con el detalle del pedido. Si no se abrió, tocá el botón de abajo.
         </p>
-        <a
-          href={linkWhatsapp}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center justify-center rounded-xl bg-mustard-500 px-5 py-3 font-bold text-mustard-900 transition hover:brightness-95"
-        >
-          Enviar pedido por WhatsApp
-        </a>
-        <a
-          href="/fotocopias"
-          className="mt-3 inline-flex items-center justify-center rounded-xl border-2 border-kraft-200 px-5 py-3 font-bold text-kraft-700 transition hover:bg-kraft-100"
-        >
-          Hacer otro pedido
-        </a>
+        <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <a
+            href={linkWhatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-xl bg-mustard-500 px-5 py-3 font-bold text-mustard-900 transition hover:brightness-95"
+          >
+            Enviar pedido por WhatsApp
+          </a>
+          <a
+            href="/fotocopias"
+            className="inline-flex items-center justify-center rounded-xl border-2 border-kraft-200 px-5 py-3 font-bold text-kraft-700 transition hover:bg-kraft-100"
+          >
+            Hacer otro pedido
+          </a>
+        </div>
       </div>
     );
   }
